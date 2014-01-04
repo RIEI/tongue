@@ -24,5 +24,6 @@ $res->bindParam(3, $feed_server, PDO::PARAM_STR);
 $res->bindParam(4, $seek, PDO::PARAM_STR);
 $res->execute();
 sleep(1);
-$smarty->assign("int", $int);
+$stream_source = "http://".$feed_server."/stream".$int.".webm";
+$smarty->assign("stream_source", $stream_source);
 $smarty->display("html5_stream_player.tpl");

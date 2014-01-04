@@ -23,7 +23,7 @@ print "\t,   = Sleep for main thread."
 print "\t.   = New item in the Shows/Music/Movies search/preparing.\n\n\n"
 
 print "Checking for updates to the Shows folders."
-#prep_sql_shows(config['shows_mnt'], conn)
+prep_sql_shows(config['shows_mnt'], conn)
 
 # Spawn the Feed Checker Thread
 feed_checker_thread = threading.Thread(name="Tongue Feed Checker Thread", target=check_feeds, args=(config['ffserver_ip'], config['ffserver_port'], config['sql_host'], config['sql_user'], config['sql_pwd'] ))
@@ -43,15 +43,17 @@ i = 1
 while 1:
     waiting = fetch_waiting(conn) #Check for videos that need to be streamed
     if not waiting: # If fetch_waiting returns 0, check to see if any feeds are unused
-        time.sleep(1) # This probably will get removed.
+        time.sleep(1)
         unused_feeds = get_unused_feeds(conn) # Get the Unused feeds
         removed = clean_threads(unused_feeds, player_threads)# check them against running ffmpeg input threads
+        #print unused_feeds
         for rm in removed:
-            #print rm
+            print rm
             del player_threads[rm]
         #print player_threads
         sys.stdout.write(",")
         sys.stdout.flush()
+        #time.sleep(0.5) # This probably will get removed.
         continue
     # if fetch_waiting returns a video, stream it.
     waiting = waiting + (config['shows_mnt'], config['bin_path'])  #append shows folder and ffmpeg bin path to list so the Feed input thread knows about them

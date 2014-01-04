@@ -28,9 +28,9 @@ other_options = "-ss " + str(seek_to_fast)
 options = "-ss "+ str(seek_delta)  # +" -trellis 1 -lmax 42000 "
 ffm_output = " http://"+args.ffserver+"/"+args.feed
 
-command = args.binpath + "ffmpeg "+ other_options +" -i " + videofile.replace(" ", "\ ") + " " + options + ffm_output
-
-#print command
-process = subprocess.Popen(command.replace("&", "\&"), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+command = args.binpath + "ffmpeg "+ other_options +" -i " + videofile.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\(") + " " + options + ffm_output
+command = command.replace("&", "\&")
+print command
+process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 #print process.stdout
 out, err = process.communicate()

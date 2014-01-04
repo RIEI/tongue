@@ -23,7 +23,7 @@
 <body>
 <div class="video-container">
     <p>HTML5 webm video</p>
-    <video src="http://feed.randomintervals.com:8090/stream{$int}.webm" width="720" height="480" controls preload autoplay></video>
+    <video src="{$stream_source}" width="720" height="480" controls preload autoplay></video>
 </div>
 </body>
 </html>​

@@ -19,8 +19,12 @@ def check_feeds(ffserver_IP, ffserver_port, sql_host, sql_u, sql_p):
     cur = sconn.cursor()
     while 1:
         sconn.commit()
-        time.sleep(1)
+        time.sleep(0.5)
+        #try:
         html = urllib2.urlopen("http://"+ffserver_IP+":"+ffserver_port+"/stat.html")
+        #    html.getcode()
+        #except urllib2.URLError:
+        #    continue
         soup = BeautifulSoup(html.read())
         i = 0
         ii_f = 0
@@ -242,17 +246,17 @@ def prep_sql_shows(Shows_mnt, conn):
                             video = str(paths[0])
 
                             show_folder = str(os.path.basename(paths[plen-2]))
-                            show_id = select_show_id(show_folder.replace("'", "\\'").replace(" ", "\\ "), conn)
+                            show_id = select_show_id(show_folder.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), conn)
                             if show_id == 0:
-                                show_id = insert_show(show_folder.replace("'", "\\'").replace(" ", "\\ "), conn)
+                                show_id = insert_show(show_folder.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), conn)
 
                             season_folder = str(os.path.basename(paths[plen-2]))
-                            season_id = select_season_id(season_folder.replace("'", "\\'").replace(" ", "\\ "), conn)
+                            season_id = select_season_id(season_folder.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), conn)
                             if season_id == 0:
-                                season_id = insert_season(season_folder.replace("'", "\\'").replace(" ", "\\ "), show_id, conn)
+                                season_id = insert_season(season_folder.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), show_id, conn)
 
                             try:
-                                cur.execute("INSERT INTO `tongue`.`video_files` (`id`, `video`, `season_id`, `show_id`, `path_hash`) VALUES (NULL, %s, %s, %s, %s )", (video.replace("'", "\\'"), season_id, show_id, str(path_hash)))
+                                cur.execute("INSERT INTO `tongue`.`video_files` (`id`, `video`, `season_id`, `show_id`, `path_hash`) VALUES (NULL, %s, %s, %s, %s )", (video.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), season_id, show_id, str(path_hash)))
                             except cymysql.MySQLError, e:
                                 print e
                             else:
@@ -268,16 +272,16 @@ def prep_sql_shows(Shows_mnt, conn):
                             video = str(paths[0])
 
                             show_folder = str(os.path.basename(paths[plen-2]))
-                            show_id = select_show_id(show_folder.replace("'", "\\'").replace(" ", "\\ "), conn)
+                            show_id = select_show_id(show_folder.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), conn)
                             if show_id == 0:
-                                show_id = insert_show(show_folder.replace("'", "\\'").replace(" ", "\\ "), conn)
+                                show_id = insert_show(show_folder.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), conn)
 
                             season_folder = str(paths[plen-3].strip(Shows_mnt))
-                            season_id = select_season_id(season_folder.replace("'", "\\'").replace(" ", "\\ "), conn)
+                            season_id = select_season_id(season_folder.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), conn)
                             if season_id == 0:
-                                season_id = insert_season(season_folder.replace("'", "\\'").replace(" ", "\\ "), show_id, conn)
+                                season_id = insert_season(season_folder.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), show_id, conn)
                             try:
-                                cur.execute("INSERT INTO `tongue`.`video_files` (`id`, `video`, `season_id`, `show_id`, `path_hash`) VALUES (NULL, %s, %s, %s, %s )", (video.replace("'", "\\'").replace(" ", "\\ "), season_id, show_id, str(path_hash)))
+                                cur.execute("INSERT INTO `tongue`.`video_files` (`id`, `video`, `season_id`, `show_id`, `path_hash`) VALUES (NULL, %s, %s, %s, %s )", (video.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), season_id, show_id, str(path_hash)))
                             except cymysql.MySQLError, e:
                                 print e
                             sys.stdout.write(".")
@@ -369,10 +373,8 @@ def tongue_socket(HOST, PORT): # A socket process that just listens and responds
 
 
 def play_file(id, feed, feed_server, seek, show, season, video, Shows_mnt, bin_path):
-    videofile = os.path.normpath(Shows_mnt+"/"+season+"/"+video)
     command = 'python /opt/ft/StreamThread.py -id '+str(id)+' -feed '+str(feed)+' -ffserver '+str(feed_server)+' -seek '+str(seek)+' -show '+str(show)+' -season '+str(season)+' -video '+str(video)+' -basepath '+str(Shows_mnt)+' -binpath '+str(bin_path)
-    #print command
-    process = subprocess.Popen(command.replace("&", "\&"), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    #print process.pid
-    #out, err = process.communicate()
+    command = command.replace("&", "\&")
+    print command
+    subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return 0
