@@ -1,6 +1,9 @@
 __author__ = 'sysferland'
 from BeautifulSoup import BeautifulSoup
 from difflib import SequenceMatcher as SM
+from ffvideo import VideoStream
+from ffvideo import DecoderError
+from ffvideo import NoMoreData
 import urllib2, ordereddict, os, sys, cymysql, time, re, hashlib, socket, subprocess, signal
 
 
@@ -198,12 +201,106 @@ def insert_season(season, show_id, conn):
     return cur.lastrowid
 
 
-def prep_sql_movies():
-    print "`"
+def prep_sql_movies(Movies_mnt, conn):
+    cur = conn.cursor()
+    #print [name for name in os.listdir(Movies_mnt) if os.path.isdir(Movies_mnt)]
+    mnt_path = Movies_mnt.split('/')
+    mnt_num = (len(mnt_path) - 1)
+    dvd_flag = 0
+    grouped = 0
+    group = 1
+    prev_folder = ""
+    for root, dirs, files in os.walk(Movies_mnt):
+        path = root.split('/')
+        root_num = (len(path) - 1)
+        sub = os.path.basename(root)
+        if prev_folder != sub:
+            grouped = 0
+        for file in files:
+            file_parts = file.split(".")
+            ext = file_parts[-1].lower()
+            del file_parts[-1]
+            file_name_no_ext = "-".join(file_parts)
+            if ext == "nfo" or ext == "jpg" or ext == "jpeg" or ext == "srt" or ext == "ifo" or ext == "bup" or ext == "nzb" or ext == "idx" or ext == "sfv" or ext == "txt" or ext == "db" or ext == "DS_Store":
+                continue
+            #print len(path)*'---'
+            if mnt_num == root_num-1:
+                print "In root: " + root
+            else:
+                print "Sub of root: " + sub
+
+                if sub.upper() == "VIDEO_TS":
+                    #print "Is DVD Video: " + file
+                    file = sub
+                    if dvd_flag == 1:
+                        #print "flag already set"
+                        continue
+                    else:
+                        dvd_flag = 1
+                else:
+                    dvd_flag = 0
+
+                #rg = re.compile('.*?((?:[a-z][a-z]*[0-9]+[a-z0-9]*))',re.IGNORECASE|re.DOTALL)
+                #m = rg.search(file)
+                lower_file = file.lower()
+
+                if "cd1" in lower_file or "cd2" in lower_file:
+                    #print lower_file
+                    if prev_folder != sub:
+                        prev_folder = sub
+                        grouped = 1
+                        group += 1
+                        #print
+                else:
+                    grouped = 0
+
+            filepath = root+"/"+file
+            if not dvd_flag:
+                try:
+                    vs = VideoStream(filepath)
+                except DecoderError:
+                    #pass
+                    print "Decoder Error :("
+                except NoMoreData:
+                    print "File corrupt??"
+                else:
+                    codec = "unknown"
+                    length = 0
+                    dimentions = "0x0"
+                finally:
+                    frame = vs.get_frame_at_sec(200)
+                    codec = vs.codec_name
+                    length = vs.duration/60
+                    dimentions = "%dx%d" % (vs.frame_width, vs.frame_height)
+                    frame.image().save('/home/pferland/mnt/e/tongue_test_images/'+file_name_no_ext+'.jpeg')
 
 
-def prep_sql_music():
-    print "'"
+            path_hash = hashlib.sha256(filepath).hexdigest()
+            cur.execute("SELECT `id` FROM `tongue`.`movie_files` WHERE `path_hash` = %s LIMIT 1", str(path_hash))
+            row = cur.fetchone()
+            fullpath = filepath.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\(")
+            file_ = file.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\(")
+            #print "DVD Flag: " + str(dvd_flag)
+            if dvd_flag == 1:
+                file_ = path[-2]
+                #print file_
+            if grouped == 0:
+                group_ins = 0
+            else:
+                group_ins = group
+
+            #print grouped, group_ins
+            if not row:
+                try:
+                    #print (fullpath, file_, str(path_hash), grouped, group_ins, dvd_flag)
+                    cur.execute("INSERT INTO `tongue`.`movie_files` (`id`, `fullpath`, `filename`, `path_hash`, `grouped`, `group`, `dvd_raw`, `runtime`, `dimentions`, `codec`) VALUES (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (fullpath, file_, str(path_hash), grouped, group_ins, dvd_flag, length, dimentions, codec))
+                except cymysql.MySQLError, e:
+                    print e
+                sys.stdout.write(".")
+                sys.stdout.flush()
+                conn.commit()
+            #print cur.lastrowid
+            print len(path)*'---', file
 
 
 def prep_sql_shows(Shows_mnt, conn):
@@ -359,6 +456,7 @@ def clean_threads(unused_feeds, threads):
                 rm.append(thread)
     return rm
 
+
 def tongue_socket(HOST, PORT): # A socket process that just listens and responds with what was sent to it.
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # init socket class
     s.bind((HOST, PORT)) # Bind to IP and Port
@@ -378,3 +476,4 @@ def play_file(id, feed, feed_server, seek, show, season, video, Shows_mnt, bin_p
     print command
     subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return 0
+

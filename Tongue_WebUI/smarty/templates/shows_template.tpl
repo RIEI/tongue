@@ -9,7 +9,7 @@
             <div style="overflow-y:auto;width:300px;height:600px;">
                 <ul>
                     {foreach from=$shows item=show}
-                    <li><a class="links" href="javascript:ajaxpage('seasons.php?show={$show.0}', 'seasoncolumn');">{$show.1}</a></li>
+                    <li><a class="links" href="javascript:ajaxpage('opt/seasons.php?show={$show.0}', 'seasoncolumn');">{$show.1}</a></li>
                     {/foreach}
                 </ul>
             </div>

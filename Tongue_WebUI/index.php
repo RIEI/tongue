@@ -1,7 +1,6 @@
 <?php
-require "init.php";
-
-$fp = @fsockopen("172.16.0.85", 8090, $errno, $errstr, 3);
+require "opt/init.php";
+$fp = @fsockopen($ffserver, $ffserver_port, $errno, $errstr, 3);
 if (!$fp) {
     $smarty->assign("ffserver_status", '<span style="background-color: red">Stopped</span>');
 }else{
@@ -9,7 +8,7 @@ if (!$fp) {
 }
 
 
-$fp = @fsockopen("172.16.0.57", 50007, $errno, $errstr, 3);
+$fp = @fsockopen($tongue_server, $tongue_port, $errno, $errstr, 3);
 if (!$fp) {
     $smarty->assign("tongue_status", '<span style="background-color: red">Stopped</span>');
 }else{

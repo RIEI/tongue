@@ -14,11 +14,12 @@ $exp = explode(".", $feed);
 $len = strlen($exp[0]);
 $int = (int)$exp[0][$len-1];
 $feed_server = $feeds['feed_server'];
-$res = $conn->prepare("INSERT INTO `tongue`.`waiting` (`video_id`, `feed`, `feed_server`, `seek`) VALUES(?, ?, ?, ?)");
+$res = $conn->prepare("INSERT INTO `tongue`.`waiting` (`video_id`, `table`, `feed`, `feed_server`, `seek`) VALUES(?, ?, ?, ?, ?)");
 
 $seek = "00:00:00";
 
-$res->bindParam(1, $_GET['video'], PDO::PARAM_INT);
+$res->bindParam(1, $_GET['video_id'], PDO::PARAM_INT);
+$res->bindParam(3, $_GET['table'], PDO::PARAM_STR);
 $res->bindParam(2, $feed, PDO::PARAM_STR);
 $res->bindParam(3, $feed_server, PDO::PARAM_STR);
 $res->bindParam(4, $seek, PDO::PARAM_STR);

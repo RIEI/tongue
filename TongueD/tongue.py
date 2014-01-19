@@ -2,8 +2,22 @@ __author__ = 'pferland'
 import cymysql, time, sys, threading
 from TongueConfig  import *
 from TongueD import *
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
 
-print "Tongue Video Streaming Server V1.0 GPLv2 1/1/2014 by Phil Ferland (pferland@randomintervals.com)"
+    def disable(self):
+        self.HEADER = ''
+        self.OKBLUE = ''
+        self.OKGREEN = ''
+        self.WARNING = ''
+        self.FAIL = ''
+        self.ENDC = ''
+print "Tongue Video Streaming Server V1.0 GPLv2 1/19/2014 by Phil Ferland (pferland@randomintervals.com)"
 
 tcfg = TongueConfig()
 config = tcfg.ConfigMap("TongueDaemon")
@@ -22,8 +36,17 @@ print "\t<-#> = Feed marked as unused and threads killed. # is the thread number
 print "\t,   = Sleep for main thread."
 print "\t.   = New item in the Shows/Music/Movies search/preparing.\n\n\n"
 
-print "Checking for updates to the Shows folders."
-prep_sql_shows(config['shows_mnt'], conn)
+#print "Checking for updates to the Shows folders."
+#prep_sql_shows(config['shows_mnt'], conn)
+
+print "Checking for updates to the Movies folders."
+print config['movies_mnt']
+prep_sql_movies(config['movies_mnt'], conn)
+
+sys.exit(1)
+
+#print "Checking for updates to the Music folders."
+#prep_sql_music(config['music_mnt'], config['bin_path'], conn)
 
 # Spawn the Feed Checker Thread
 feed_checker_thread = threading.Thread(name="Tongue Feed Checker Thread", target=check_feeds, args=(config['ffserver_ip'], config['ffserver_port'], config['sql_host'], config['sql_user'], config['sql_pwd'] ))
@@ -35,9 +58,8 @@ feed_checker_thread.start()
 
 player_threads = {} # Start the list for the Video Feed Threads
 
-#TODO:
-# WIP - Feed to play_file thread so when someone disconnects the ffmpeg process can get killed and feed freed up
-# NS  - Need to wait for stream to change to WAIT_FEED then you can send the next video.
+#TODO: WIP - Feed to play_file thread so when someone disconnects the ffmpeg process can get killed and feed freed up
+#TODO: NS  - Need to wait for stream to change to WAIT_FEED then you can send the next video.
 
 i = 1
 while 1:

@@ -7,8 +7,8 @@
  */
 require "init.php";
 
-$search = array("\\ ", "\\'");
-$replace = array(" ", "'");
+$search = array("\\");
+$replace = array("");
 
 $show = (int)$_GET['show'];
 $res = $conn->prepare("SELECT `seasons`.`id`, `seasons`.`season_name`, `shows`.`show_name` from `tongue`.`seasons`, `tongue`.`shows` WHERE `seasons`.`show_id` = `shows`.`id` AND `shows`.`id` = ?");
