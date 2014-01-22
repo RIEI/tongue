@@ -12,7 +12,7 @@ $tongue_port    = "50007";
 
 $sqlhost        = "172.16.1.76";
 $service        = "mysql";
-$sqluser        = "root";
-$sqlpwd         = "W!res191";
+$sqluser        = "tongue";
+$sqlpwd         = "tongue_ui";
 
 $smarty_lib = '/var/www/tongue_ui/smarty/libs/';
