@@ -8,7 +8,7 @@
 require "init.php";
 $res = $conn->query("SELECT `feed`, `feed_server` FROM `tongue`.`feeds` WHERE `in_use` != 1 LIMIT 1");
 $feeds = $res->fetch(2);
-var_dump($feeds);
+
 $feed = $feeds['feed'];
 $exp = explode(".", $feed);
 $len = strlen($exp[0]);
@@ -18,13 +18,14 @@ $res = $conn->prepare("INSERT INTO `tongue`.`waiting` (`video_id`, `table`, `fee
 
 $seek = "00:00:00";
 
-$res->bindParam(1, $_GET['video_id'], PDO::PARAM_INT);
-$res->bindParam(3, $_GET['table'], PDO::PARAM_STR);
-$res->bindParam(2, $feed, PDO::PARAM_STR);
-$res->bindParam(3, $feed_server, PDO::PARAM_STR);
-$res->bindParam(4, $seek, PDO::PARAM_STR);
+$res->bindParam(1, $_GET['video'], PDO::PARAM_INT);
+$res->bindParam(2, $_GET['table'], PDO::PARAM_STR);
+$res->bindParam(3, $feed, PDO::PARAM_STR);
+$res->bindParam(4, $feed_server, PDO::PARAM_STR);
+$res->bindParam(5, $seek, PDO::PARAM_STR);
 $res->execute();
-sleep(1);
-$stream_source = "http://".$feed_server."/stream".$int.".webm";
+sleep(3); #sleep so that the feed can get the source buffered a little. You are probably going to have to still pause the video for a few seconds or a minute to get a good buffer.
+
+$stream_source = "http://".$feed_server."/stream".$int;
 $smarty->assign("stream_source", $stream_source);
-$smarty->display("html5_stream_player.tpl");
+$smarty->display("flash_player.tpl");

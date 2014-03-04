@@ -23,11 +23,12 @@ def check_feeds(ffserver_IP, ffserver_port, sql_host, sql_u, sql_p):
     while 1:
         sconn.commit()
         time.sleep(0.5)
-        #try:
-        html = urllib2.urlopen("http://"+ffserver_IP+":"+ffserver_port+"/stat.html")
-        #    html.getcode()
-        #except urllib2.URLError:
-        #    continue
+        try:
+            html = urllib2.urlopen("http://"+ffserver_IP+":"+ffserver_port+"/stat.html")
+            html.getcode()
+        except urllib2.URLError:
+            print "ffserver is offline."
+            continue
         soup = BeautifulSoup(html.read())
         i = 0
         ii_f = 0
@@ -206,203 +207,249 @@ def prep_sql_movies(Movies_mnt, conn):
     #print [name for name in os.listdir(Movies_mnt) if os.path.isdir(Movies_mnt)]
     mnt_path = Movies_mnt.split('/')
     mnt_num = (len(mnt_path) - 1)
-    dvd_flag = 0
-    grouped = 0
-    group = 1
-    prev_folder = ""
-    for root, dirs, files in os.walk(Movies_mnt):
-        path = root.split('/')
-        root_num = (len(path) - 1)
-        sub = os.path.basename(root)
-        if prev_folder != sub:
-            grouped = 0
-        for file in files:
-            file_parts = file.split(".")
-            ext = file_parts[-1].lower()
-            del file_parts[-1]
-            file_name_no_ext = "-".join(file_parts)
-            if ext == "nfo" or ext == "jpg" or ext == "jpeg" or ext == "srt" or ext == "ifo" or ext == "bup" or ext == "nzb" or ext == "idx" or ext == "sfv" or ext == "txt" or ext == "db" or ext == "DS_Store":
-                continue
-            #print len(path)*'---'
-            if mnt_num == root_num-1:
-                print "In root: " + root
-            else:
-                print "Sub of root: " + sub
-
-                if sub.upper() == "VIDEO_TS":
-                    #print "Is DVD Video: " + file
-                    file = sub
-                    if dvd_flag == 1:
-                        #print "flag already set"
-                        continue
+    while 1:
+        dvd_flag = 0
+        grouped = 0
+        group = 1
+        prev_folder = ""
+        for root, dirs, files in os.walk(Movies_mnt):
+            path = root.split('/')
+            #print path
+            root_num = (len(path) - 1)
+            sub = os.path.basename(root)
+            if prev_folder != sub:
+                grouped = 0
+            for file in files:
+                filepath = root+"/"+file
+                #print filepath
+                path_hash = hashlib.sha256(filepath).hexdigest()
+                file_parts = file.split(".")
+                ext = file_parts[-1].lower()
+                if ext == "nfo" or ext == "jpg" or ext == "jpeg" or ext == "srt" or ext == "ifo" or ext == "bup" or ext == "nzb" or ext == "idx" or ext == "sfv" or ext == "txt" or ext == "db" or ext == "DS_Store":
+                    continue
+                cur.execute("SELECT `id` FROM `tongue`.`movie_files` WHERE `path_hash` = %s LIMIT 1", str(path_hash))
+                row = cur.fetchone()
+                #print filepath
+                #print row
+                if not row:
+                    del file_parts[-1]
+                    file_name_no_ext = "-".join(file_parts)
+                else:
+                    continue
+                #print len(path)*'---'
+                if mnt_num == root_num-1:
+                    #print "In root: " + root
+                    ii = 0
+                else:
+                    #print "Sub of root: " + sub + " : " + file
+                    if sub.upper() == "VIDEO_TS":
+                        #print "Is DVD Video: " + file
+                        if dvd_flag == 1:
+                            print "flag already set"
+                            #continue
+                        else:
+                            dvd_flag = 1
+                        file = sub
                     else:
-                        dvd_flag = 1
-                else:
-                    dvd_flag = 0
+                        dvd_flag = 0
+                    lower_file = file.lower()
 
-                #rg = re.compile('.*?((?:[a-z][a-z]*[0-9]+[a-z0-9]*))',re.IGNORECASE|re.DOTALL)
-                #m = rg.search(file)
-                lower_file = file.lower()
+                    if "cd1" in lower_file or "cd2" in lower_file:
+                        #print lower_file
+                        if prev_folder != sub:
+                            prev_folder = sub
+                            grouped = 1
+                            group += 1
+                            #print
+                    else:
+                        grouped = 0
+                if not dvd_flag:
+                    try:
+                        vs = VideoStream(filepath)
+                    except DecoderError:
+                        #pass
+                        codec = "unknown"
+                        length = 0
+                        dimensions = "0x0"
+                        print "Decoder Error :("
+                    except NoMoreData:
+                        codec = "unknown"
+                        length = 0
+                        dimensions = "0x0"
+                        print "File corrupt??"
+                    else:
+                        frame = vs.get_frame_at_sec(200)
+                        codec = vs.codec_name
+                        hours = vs.duration/3600
+                        minuets = (vs.duration/60) - (int(hours) * 60)
+                        rg = re.compile('.*?\\d+.*?(\\d+)',re.IGNORECASE|re.DOTALL)
+                        m = rg.search(str(minuets))
+                        seconds = int(float("0."+ m.group(1)) * 60)
 
-                if "cd1" in lower_file or "cd2" in lower_file:
-                    #print lower_file
-                    if prev_folder != sub:
-                        prev_folder = sub
-                        grouped = 1
-                        group += 1
-                        #print
+                        # print vs.duration, minuets, hours
+                        length = "%dh:%02d:%02d" % (hours, minuets, seconds)
+                        dimensions = "%dx%d" % (vs.frame_width, vs.frame_height)
                 else:
-                    grouped = 0
-
-            filepath = root+"/"+file
-            if not dvd_flag:
-                try:
-                    vs = VideoStream(filepath)
-                except DecoderError:
-                    #pass
-                    print "Decoder Error :("
-                except NoMoreData:
-                    print "File corrupt??"
-                else:
-                    codec = "unknown"
+                    codec = "RAWDVD"
                     length = 0
-                    dimentions = "0x0"
-                finally:
-                    frame = vs.get_frame_at_sec(200)
-                    codec = vs.codec_name
-                    length = vs.duration/60
-                    dimentions = "%dx%d" % (vs.frame_width, vs.frame_height)
-                    frame.image().save('/home/pferland/mnt/e/tongue_test_images/'+file_name_no_ext+'.jpeg')
+                    dimensions = "0x0"
 
-
-            path_hash = hashlib.sha256(filepath).hexdigest()
-            cur.execute("SELECT `id` FROM `tongue`.`movie_files` WHERE `path_hash` = %s LIMIT 1", str(path_hash))
-            row = cur.fetchone()
-            fullpath = filepath.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\(")
-            file_ = file.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\(")
-            #print "DVD Flag: " + str(dvd_flag)
-            if dvd_flag == 1:
-                file_ = path[-2]
-                #print file_
-            if grouped == 0:
-                group_ins = 0
-            else:
-                group_ins = group
-
-            #print grouped, group_ins
-            if not row:
+                fullpath = filepath.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\(")
+                file_ = file.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\(")
+                #print "DVD Flag: " + str(dvd_flag)
+                if dvd_flag == 1:
+                    file_ = path[-2]
+                if grouped == 0:
+                    group_ins = 0
+                else:
+                    group_ins = group
+                #print grouped, group_ins
                 try:
-                    #print (fullpath, file_, str(path_hash), grouped, group_ins, dvd_flag)
-                    cur.execute("INSERT INTO `tongue`.`movie_files` (`id`, `fullpath`, `filename`, `path_hash`, `grouped`, `group`, `dvd_raw`, `runtime`, `dimentions`, `codec`) VALUES (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (fullpath, file_, str(path_hash), grouped, group_ins, dvd_flag, length, dimentions, codec))
+                    cur.execute("INSERT INTO `tongue`.`movie_files` (`id`, `fullpath`, `filename`, `path_hash`, `grouped`, `group`, `dvd_raw`, `runtime`, `dimensions`, `codec`) VALUES (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (fullpath.replace(os.path.dirname(root) ,""), file_, str(path_hash), grouped, group_ins, dvd_flag, length, dimensions, codec))
                 except cymysql.MySQLError, e:
                     print e
-                sys.stdout.write(".")
+                sys.stdout.write("`")
                 sys.stdout.flush()
                 conn.commit()
-            #print cur.lastrowid
-            print len(path)*'---', file
+                #print len(path)*'---', file
+        time.sleep(900)
 
 
 def prep_sql_shows(Shows_mnt, conn):
     cur = conn.cursor()
-    ii = 0
-    for (dirpath, dirnames, filenames) in os.walk(os.path.normpath(Shows_mnt)):
-        if filenames:
-            for file in filenames:
-                if file == ".DS_Store":
-                    continue
-                if file == "ehthumbs_vista.db":
-                    continue
-                if file == "Thumbs.db":
-                    continue
-                if file == "dead.txt":
-                    continue
-                paths = []
-                parse = ""
-                i = 0
-                while Shows_mnt != parse:
-                    if i == 0:
-                        paths.append(file)
-                        parse = os.path.dirname(os.path.normpath(dirpath + "/" + file))
-                    else:
-                        if parse in paths:
-                            parse = os.path.dirname(parse)
-                    i += 1
-                    paths.append(parse)
+    while 1:
+        ii = 0
+        for (dirpath, dirnames, filenames) in os.walk(os.path.normpath(Shows_mnt)):
+            if filenames:
+                for file in filenames:
+                    if ".DS_Store" in file:
+                        continue
+                    file_parts = file.split(".")
+                    ext = file_parts[-1].lower()
+                    del file_parts[-1]
+                    if ext == "nfo" or ext == "jpg" or ext == "jpeg" or ext == "srt" or ext == "ifo" or ext == "bup" or ext == "nzb" or ext == "idx" or ext == "sfv" or ext == "txt" or ext == "db" or ext == "part":
+                        continue
+                    paths = []
+                    parse = ""
+                    i = 0
+                    while Shows_mnt != parse:
+                        if i == 0:
+                            paths.append(file)
+                            parse = os.path.dirname(os.path.normpath(dirpath + "/" + file))
+                        else:
+                            if parse in paths:
+                                parse = os.path.dirname(parse)
+                        i += 1
+                        paths.append(parse)
 
-                #print paths
-                path_string = ''.join(paths)
-                path_hash = hashlib.sha256(path_string).hexdigest()
-                #print path_hash
-                cur.execute("SELECT `id` FROM `tongue`.`video_files` WHERE `path_hash` = %s LIMIT 1", str(path_hash))
-                row = cur.fetchone()
-                if not row:
-                    if paths:
-                        plen = len(paths)
-                        if plen == 3:
-                            video = str(paths[0])
-
-                            show_folder = str(os.path.basename(paths[plen-2]))
-                            show_id = select_show_id(show_folder.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), conn)
-                            if show_id == 0:
-                                show_id = insert_show(show_folder.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), conn)
-
-                            season_folder = str(os.path.basename(paths[plen-2]))
-                            season_id = select_season_id(season_folder.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), conn)
-                            if season_id == 0:
-                                season_id = insert_season(season_folder.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), show_id, conn)
-
+                    #print paths
+                    path_string = ''.join(paths)
+                    path_hash = hashlib.sha256(path_string).hexdigest()
+                    #print path_hash
+                    cur.execute("SELECT `id` FROM `tongue`.`video_files` WHERE `path_hash` = %s LIMIT 1", str(path_hash))
+                    row = cur.fetchone()
+                    #print row
+                    if not row:
+                        if ext != "rm":
+                            filepath = dirpath+"/"+file
+                            print filepath
+                            file_parts = file.split(".")
+                            ext = file_parts[-1].lower()
+                            del file_parts[-1]
+                            file_name_no_ext = "-".join(file_parts)
                             try:
-                                cur.execute("INSERT INTO `tongue`.`video_files` (`id`, `video`, `season_id`, `show_id`, `path_hash`) VALUES (NULL, %s, %s, %s, %s )", (video.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), season_id, show_id, str(path_hash)))
-                            except cymysql.MySQLError, e:
-                                print e
+                                vs = VideoStream(filepath)
+                            except DecoderError:
+                                #pass
+                                codec = "unknown"
+                                length = 0
+                                dimensions = "0x0"
+                                print "Decoder Error :("
+                            except NoMoreData:
+                                codec = "unknown"
+                                length = 0
+                                dimensions = "0x0"
+                                print "File corrupt??"
                             else:
-                                #print paths[0]+"|=|"+os.path.basename(paths[plen-2])+"|=|"+os.path.basename(paths[plen-2])
-                                #print show_id, season_id
-                                if ii == 100:
-                                    sys.stdout.write("\n")
-                                    ii = 0
-                                ii += 1
+                                if vs.duration < 20:
+                                    frame = vs.get_frame_at_sec(vs.duration/2)
+                                else:
+                                    frame = vs.get_frame_at_sec(20)
+                                codec = vs.codec_name
+                                hours = vs.duration/3600
+                                minuets = (vs.duration/60) - (int(hours) * 60)
+                                rg = re.compile('.*?\\d+.*?(\\d+)',re.IGNORECASE|re.DOTALL)
+                                m = rg.search(str(minuets))
+                                seconds = int(float("0."+ m.group(1)) * 60)
+
+                                # print vs.duration, minuets, hours
+                                length = "%dh:%02d:%02d" % (hours, minuets, seconds)
+                                dimensions = "%dx%d" % (vs.frame_width, vs.frame_height)
+                        if paths:
+                            plen = len(paths)
+                            if plen == 3:
+                                video = str(paths[0])
+
+                                show_folder = str(os.path.basename(paths[plen-2]))
+                                show_id = select_show_id(show_folder.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), conn)
+                                if show_id == 0:
+                                    show_id = insert_show(show_folder.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), conn)
+
+                                season_folder = str(os.path.basename(paths[plen-2]))
+                                season_id = select_season_id(season_folder.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), conn)
+                                if season_id == 0:
+                                    season_id = insert_season(season_folder.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), show_id, conn)
+
+                                try:
+                                    cur.execute("INSERT INTO `tongue`.`video_files` (`id`, `video`, `season_id`, `show_id`, `path_hash`, `runtime`, `dimensions`) VALUES (NULL, %s, %s, %s, %s, %s, %s )", (video.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), season_id, show_id, str(path_hash), length, dimensions))
+                                except cymysql.MySQLError, e:
+                                    print e
+                                else:
+                                    #print paths[0]+"|=|"+os.path.basename(paths[plen-2])+"|=|"+os.path.basename(paths[plen-2])
+                                    #print show_id, season_id
+                                    if ii == 100:
+                                        sys.stdout.write("\n")
+                                        ii = 0
+                                    ii += 1
+                                    sys.stdout.write(".")
+                                    sys.stdout.flush()
+                            else:
+                                video = str(paths[0])
+
+                                show_folder = str(os.path.basename(paths[plen-2]))
+                                show_id = select_show_id(show_folder.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), conn)
+                                if show_id == 0:
+                                    show_id = insert_show(show_folder.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), conn)
+
+                                season_folder = str(paths[plen-3].strip(Shows_mnt))
+                                season_id = select_season_id(season_folder.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), conn)
+                                if season_id == 0:
+                                    season_id = insert_season(season_folder.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), show_id, conn)
+                                try:
+                                    cur.execute("INSERT INTO `tongue`.`video_files` (`id`, `video`, `season_id`, `show_id`, `path_hash`) VALUES (NULL, %s, %s, %s, %s )", (video.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), season_id, show_id, str(path_hash)))
+                                except cymysql.MySQLError, e:
+                                    print e
                                 sys.stdout.write(".")
                                 sys.stdout.flush()
-                        else:
-                            video = str(paths[0])
-
-                            show_folder = str(os.path.basename(paths[plen-2]))
-                            show_id = select_show_id(show_folder.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), conn)
-                            if show_id == 0:
-                                show_id = insert_show(show_folder.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), conn)
-
-                            season_folder = str(paths[plen-3].strip(Shows_mnt))
-                            season_id = select_season_id(season_folder.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), conn)
-                            if season_id == 0:
-                                season_id = insert_season(season_folder.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), show_id, conn)
-                            try:
-                                cur.execute("INSERT INTO `tongue`.`video_files` (`id`, `video`, `season_id`, `show_id`, `path_hash`) VALUES (NULL, %s, %s, %s, %s )", (video.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\("), season_id, show_id, str(path_hash)))
-                            except cymysql.MySQLError, e:
-                                print e
-                            sys.stdout.write(".")
-                            sys.stdout.flush()
-                #            print paths[0]+"|=|"+paths[plen-3].strip(Shows_mnt)+"|=|"+os.path.basename(paths[plen-2])
-                #            print show_id, season_id
-
-                        conn.commit()
-                #else:
-                #    print "-----------SKIPPED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-                #    print paths[0]+"|=|"+paths[plen-3].strip(Shows_mnt)+"|=|"+os.path.basename(paths[plen-2])
-                #    print show_id, season_id
-                #    print "-----------SKIPPED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-
+                            conn.commit()
+        time.sleep(900)
 
 def fetch_waiting(conn):
     conn.commit()
     cur = conn.cursor()
-    cur.execute("SELECT `waiting`.`id`, `waiting`.`feed`, `waiting`.`feed_server`, `waiting`.`seek`, `shows`.`show_name`"+
-    ", `seasons`.`season_name`, `video_files`.`video` FROM `tongue`.`waiting`, `tongue`.`video_files`, `tongue`.`seasons`, "+
-    "`tongue`.`shows` WHERE `video_files`.`id` = `waiting`.`video_id` AND `seasons`.`id` = `video_files`.`season_id` AND "+
-    "`shows`.`id` = `video_files`.`show_id` ORDER BY `waiting`.`id` ASC LIMIT 1")
+    cur.execute("SELECT `table` FROM `waiting` ORDER BY `id` LIMIT 1")
+    table_ = cur.fetchone()
+    if table_:
+        if table_[0] == "video_files":
+            cur.execute("SELECT `waiting`.`id`, `waiting`.`feed`, `waiting`.`feed_server`, `waiting`.`seek`, `shows`.`show_name`"+
+            ", `seasons`.`season_name`, `video_files`.`video` FROM `tongue`.`waiting`, `tongue`.`video_files`, `tongue`.`seasons`, "+
+            "`tongue`.`shows` WHERE `video_files`.`id` = `waiting`.`video_id` AND `seasons`.`id` = `video_files`.`season_id` AND "+
+            "`shows`.`id` = `video_files`.`show_id` ORDER BY `waiting`.`id` ASC LIMIT 1")
+        elif table_[0] == "movie_files":
+            cur.execute("SELECT `waiting`.`id`, `waiting`.`video_id`, `waiting`.`feed`, `waiting`.`feed_server`, `waiting`.`seek`, `movie_files`.`fullpath`, `movie_files`.`group`, `movie_files`.`grouped`, `movie_files`.`dvd_raw` FROM `tongue`.`waiting`, `tongue`.`movie_files` WHERE `movie_files`.`id` = `waiting`.`video_id` ORDER BY `waiting`.`id` ASC LIMIT 1")
     row = cur.fetchone()
     if row:
+        row = row + (table_[0],)
         return row
     else:
         return 0
@@ -470,8 +517,8 @@ def tongue_socket(HOST, PORT): # A socket process that just listens and responds
     conn.close() # not sure ho you would get here seeing how there is no break out of the while loop
 
 
-def play_file(id, feed, feed_server, seek, show, season, video, Shows_mnt, bin_path):
-    command = 'python /opt/ft/StreamThread.py -id '+str(id)+' -feed '+str(feed)+' -ffserver '+str(feed_server)+' -seek '+str(seek)+' -show '+str(show)+' -season '+str(season)+' -video '+str(video)+' -basepath '+str(Shows_mnt)+' -binpath '+str(bin_path)
+def play_file(feed, feed_server, seek, fullpath, bin_path):
+    command = 'python StreamThread.py -feed '+str(feed)+' -ffserver '+str(feed_server)+' -seek '+str(seek)+' -source '+str(fullpath)+' -binpath '+str(bin_path)
     command = command.replace("&", "\&")
     print command
     subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

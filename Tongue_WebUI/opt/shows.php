@@ -11,7 +11,7 @@ $replace = array(" ", "'");
 
 foreach($res->fetchAll(2) as $row)
 {
-    $shows[] = array($row['id'], str_replace($search, $replace, $row['show_name']));
+    $shows[] = array($row['id'], htmlentities(stripslashes($row['show_name']), ENT_QUOTES));
 }
 $smarty->assign("shows", $shows);
 $smarty->display("shows_template.tpl");

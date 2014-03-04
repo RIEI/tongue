@@ -18,7 +18,7 @@ foreach($res->fetchAll(2) as $row)
 
     }
 
-    $movies[] = array($row['id'], stripslashes($row['filename']), $row['group']);
+    $movies[] = array($row['id'], htmlentities(stripslashes($row['filename']), ENT_QUOTES), $row['group']);
 }
 $smarty->assign("movies", $movies);
 $smarty->display("movies_template.tpl");

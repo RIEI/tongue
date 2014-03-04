@@ -9,8 +9,6 @@
 $season = (int)$_GET['season'];
 
 require "init.php";
-$search = array("\\\\","\\","\\ ");
-$replace = array("", "", " ");
 
 $res = $conn->prepare("SELECT  `video_files`.`id` ,  `video_files`.`video` ,  `video_files`.`season_id` ,  `seasons`.`season_name` ,  `shows`.`show_name`
 FROM  `tongue`.`video_files` ,  `tongue`.`seasons` ,  `tongue`.`shows`
@@ -22,11 +20,9 @@ $res->bindParam(1, $season, PDO::PARAM_INT);
 $res->execute();
 $videos = array();
 
-
 foreach($res->fetchAll(2) as $row)
 {
-    $shows[] = array($row['id'], str_replace($search, $replace, $row['video']));
+    $shows[] = array($row['id'], htmlentities(stripslashes($row['video']), ENT_QUOTES));
 }
-
-$smarty->assign("videos", $videos);
+$smarty->assign("videos", $shows);
 $smarty->display("episodes_template.tpl");

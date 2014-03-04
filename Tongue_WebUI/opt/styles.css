@@ -1,0 +1,72 @@
+
+a
+{
+    text-decoration:none;
+}
+
+.active {
+    background-color:red;
+}
+
+ul
+{
+    padding: 0;
+    list-style-type: none;
+}
+div.movie_list_div
+{
+    overflow-y:auto;
+}
+
+td.seasons_col
+{
+
+}
+
+td.episode_col
+{
+
+}
+
+td.episode_details_col
+{
+
+}
+
+td.movie_list_col
+{
+
+}
+
+td.movie_details_col
+{
+
+}
+
+td.index_contents_col
+{
+    background-color:#FFFF00;
+    vertical-align: top;
+    min-width: 80px;
+    width:80px
+}
+
+td.index_center
+{
+    background-color:#FA4401;
+}
+
+td.index_header
+{
+
+}
+
+td.running
+{
+
+}
+
+td.stopped
+{
+
+}
