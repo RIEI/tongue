@@ -36,3 +36,11 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+Tongue_WebUI/players/flow/LICENSE.md
+Tongue_WebUI/players/flow/flowplayer.js
+Tongue_WebUI/players/flow/flowplayer.min.js
+Tongue_WebUI/players/flow/index.html
+Tongue_WebUI/players/flow/skin/all-skins.css
+Tongue_WebUI/players/flow/skin/functional.css
+Tongue_WebUI/players/flow/skin/minimalist.css
+Tongue_WebUI/players/flow/skin/playful.css
