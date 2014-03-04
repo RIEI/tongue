@@ -1,10 +1,10 @@
-<table style="border-width: 1px; border-spacing: 1px">
+<table class="eppisode_details_table">
     <tr>
-        <th style="width: 75%">{$file.filename} Details</th>
+        <th class="details_table_head">{$file.filename} Details</th>
     </tr>
     <tr>
-        <td style="vertical-align:top;">
-            <div style="overflow-y:auto;height:600px;">
+        <td class="details_col">
+            <div class="details_div">
                 <a href="opt/video_player.php?video_id={$file.id}&amp;table=video_files" onclick="return popitup('opt/video_player.php?video={$file.id}&amp;table=video_files')">Play!</a>
                 </br>
                 {$file.filename}

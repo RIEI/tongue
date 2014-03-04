@@ -1,3 +1,23 @@
+<!-- disabled for now....
+$(document).ready(function(){
+    $('#wrapperDiv').on("click", 'a', function() {
+        $('#index_column').on("click", 'a', function() {
+            $(this).addClass("active");
+            var parent_id = $(this).parent(this).parent().attr('id');
+            $('#index_column a').not(document.getElementById( this.id )).removeClass("active");
+        });
+
+        $('#showslist').on("click", 'a', function() {
+            $(this).addClass("active");
+            var parent_id = $(this).parent(this).parent().attr('id');
+            $('#showslist a').not(document.getElementById( this.id )).removeClass("active");
+        });
+    });
+});
+-->
+
+
+
 /***********************************************
 * Dynamic Ajax Content- © Dynamic Drive DHTML code library (www.dynamicdrive.com)
 * This notice MUST stay intact for legal use

@@ -7,8 +7,16 @@
 
     <!-- site specific styling -->
     <style type="text/css">
-        body { background-color: #000000; font: 12px "Myriad Pro", "Lucida Grande", sans-serif; text-align: center; padding-top: 0%; }
-        .flowplayer { width: 1280px; }
+        body
+        {
+            background-color: #000000;
+            font: 12px "Myriad Pro", "Lucida Grande", sans-serif;
+            text-align: center;
+            padding-top: 0%;
+        }.flowplayer
+        {
+            width: 1280px;
+        }
     </style>
 
     <!-- flowplayer depends on jQuery 1.7.1+ (for now) -->

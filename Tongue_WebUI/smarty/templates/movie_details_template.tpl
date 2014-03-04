@@ -3,8 +3,8 @@
         <th style="width: 75%">{$movie_name} Details</th>
     </tr>
     <tr>
-        <td style="vertical-align:top;">
-            <div style="overflow-y:auto;height:600px;">
+        <td class="movie_details_col">
+            <div class="movie_details_div">
                 <a href="video_player.php?video_id={$movies[0].id}&amp;table=movie_files" onclick="return popitup('opt/video_player.php?video={$movies[0].id}&amp;table=movie_files')">Play Movie!</a>
                 </br>
                 Movie Files:
