@@ -1,0 +1,13 @@
+#TODO: WIP - Feed to play_file thread so when someone disconnects the ffmpeg process can get killed and feed freed up
+#            Implemented, it works... some times, other times it is too ambitious. ie, from home it works fine, at work it doesnt
+#TODO: WIP - Screenshot images from the video files. Screenshots are taken and stored, just need to implement the usage on the front end
+#            Screenshots are taken and stored in the www folder, now just need to WebUI to use them.
+#TODO: WIP - Figure out how to do multiple ffserver feed servers
+#            I have 2 ffserver's setup and the config layout set, just need to get the tongue service to use one or the other.
+#TODO: WIP - Concat CD1 - CD2 based movies into one stream
+#            Multi-part Movies are marked in the table, as a group, but the ffmpeg streamer does nothing with it yet.
+#TODO: WIP - Stream DVD VIDEO_TS/*.VOB Main Title
+#            Raw DVD folders are marked in the table, as raw_dvd, but the ffmpeg streamer does nothing with it yet.
+#TODO: NS  - Need to wait for stream to change to WAIT_FEED then you can send the next video.
+#TODO: NS  - Find a way to do time seeks
+#TODO: NS  - Find a way to do playlists

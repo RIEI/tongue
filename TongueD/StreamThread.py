@@ -2,19 +2,15 @@ __author__ = 'sysferland'
 import argparse, subprocess, os
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-id', help='video waiting id in SQL table')
 parser.add_argument('-feed', help='feed name')
 parser.add_argument('-ffserver', help='ffserver IP and PORT')
-parser.add_argument('-seek', help='seek to time')
-parser.add_argument('-show', help='show name')
-parser.add_argument('-season', help='season folder')
-parser.add_argument('-video', help='video name')
-parser.add_argument('-basepath', help='all base path')
+parser.add_argument('-source', help='video source path if DVD Raw the path to the VIDEO_TS folder')
+parser.add_argument('-seek', help='time to seek to in for the feed')
 parser.add_argument('-binpath', help='ffmpeg bin path')
 
 args = parser.parse_args()
 
-videofile = os.path.normpath(args.basepath+"/"+args.season+"/"+args.video)
+videofile = os.path.normpath(args.source)
 
 #dt_to = datetime.time(00,20,00)
 #dt_delta = datetime.time(00,00,30)
@@ -28,7 +24,8 @@ other_options = "-ss " + str(seek_to_fast)
 options = "-ss "+ str(seek_delta)  # +" -trellis 1 -lmax 42000 "
 ffm_output = " http://"+args.ffserver+"/"+args.feed
 
-command = args.binpath + "ffmpeg "+ other_options +" -i " + videofile.replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&").replace(")", "\)").replace("(", "\(") + " " + options + ffm_output
+
+command = args.binpath + "ffmpeg -threads 2 "+ other_options +" -i " + videofile.replace(")", "\\)").replace("(", "\\(").replace("'", "\\'").replace(" ", "\\ ").replace("-", "\-").replace("&", "\&") + " " + options + ffm_output
 command = command.replace("&", "\&")
 print command
 process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

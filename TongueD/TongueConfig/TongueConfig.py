@@ -12,5 +12,8 @@ class TongueConfig:
         dict1 = {}
         options = self.Config.options(section)
         for option in options:
-            dict1[option] = self.Config.get(section, option)
+            if option == "ffservers":
+                dict1[option] = self.Config.get(section, option).split(',')
+            else:
+                dict1[option] = self.Config.get(section, option)
         return dict1
