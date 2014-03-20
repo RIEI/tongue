@@ -322,22 +322,25 @@ def ffserver_stats(ffservers):
     stats = {}
     temp = {}
     i = -1
+    #loop for each ffserver
     for ffserver in ffservers:
+
+        #Test to see if it is online or not
         try:
             html = urllib2.urlopen("http://"+ffserver+"/stat.html")
             #print html.getcode()
         except urllib2.URLError:
             print ffserver + " is offline."
             return 0
+
         i += 1
-        #stats['stats'] = {i: {}}
         soup = BeautifulSoup(html.read())
         stats[i] = {}
         all = soup.findAll("tr")
         c = 0
         break_loop = 0
+        #go through the first table rows and get the available streams
         for supply in all:
-            #print supply
             c += 1
             ii = 0
             for td in supply.findAll("td"):
@@ -372,11 +375,11 @@ def ffserver_stats(ffservers):
                 break_loop = 0
                 break
 
+        #now lets get the last table so we can get the current connections
         tables = soup.findAll("table")[-1]
         temp[i] = {}
         cc = 0
         for table in tables:
-            #print table
             table_s = BeautifulSoup(str(table))
             for tr in table_s.findAll("tr"):
                 iii = 0
@@ -400,16 +403,62 @@ def ffserver_stats(ffservers):
                         temp[i][cc]['actual'] = td.text
                     elif iii == 7:
                         temp[i][cc]['tx'] = td.text
-                    #print "temp["+str(i)+"]["+str(cc)+"]: "
                     iii += 1
-    #print temp
-    #reset key so its 0 not 3 at start
-    #merge the two arrays, and send it on out to be inserted/updated in the table.
-    #
-    for key in stats:
-        print key
-        print temp[key]
-    return stats
+    #now lets re-order the dicts so that they start with 0
+    i = 0
+    streams = {}
+    for key in temp:
+        ii = 0
+        streams[i] = {}
+        for key2 in stats[key]:
+            streams[i][ii] = stats[key][key2]
+            ii += 1
+        i += 1
+
+    i = 0
+    connections = {}
+    for key in temp:
+        ii = 0
+        connections[i] = {}
+        for key2 in temp[key]:
+            connections[i][ii] = temp[key][key2]
+            ii += 1
+        i += 1
+
+    #match up the connections with the streams.
+    for key in connections:
+        for v in connections[key]:
+            searched = search(streams[key], connections[key][v]['name'].strip("(input)"), 0)
+            print searched
+            streams[key][searched[0]]['feed_stats'] = connections[key][v]
+            if connections[key][v]['name'].strip("(input)")[0] == "f":
+                streams[key][searched[0]]['input'] = 1
+            else:
+                streams[key][searched[0]]['output'] = 1
+    return streams
+
+
+# To search a dict :: people = {0: {'name':'boo', 'age':22}, 1: {'name':'foo', 'age': 21}}
+# search(dict, 21, 0)
+# Returns: [1, 'age']
+def search(dict_, value, Recursive):
+    ret1 = []
+    for k in dict_:
+        if isinstance(dict_[k], dict):
+            ret_search = search(dict_[k], value, 1)
+            if ret_search == []:
+                continue
+            else:
+                ret1.append(k)
+                if isinstance(ret_search, list):
+                    ret1.append(ret_search[0])
+                    ret1.append(ret_search[1])
+                else:
+                    ret1.append(ret_search)
+        else:
+            if dict_[k] == value:
+                return k
+    return ret1
 
 
 def check_used_feeds(ffservers, sql_host, sql_u, sql_p):
